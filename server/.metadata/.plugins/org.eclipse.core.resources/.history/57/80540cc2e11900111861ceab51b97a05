@@ -1,0 +1,137 @@
+package com.example.demo.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "garages")
+public class GarageEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "garage_name", nullable = false)
+    private String garageName;
+
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
+
+    @Column(name = "location_lat")
+    private Double locationLat;
+
+    @Column(name = "location_lng")
+    private Double locationLng;
+
+    private String address;
+
+    @Column(name = "garage_type")
+    private String garageType;
+
+    @Column(name = "years_of_service")
+    private Integer yearsOfService;
+
+    @Column(name = "service_quality_score")
+    private Double serviceQualityScore;
+
+    @Column(name = "trust_score")
+    private Double trustScore;
+
+    @Column(name = "documents_verified")
+    private Boolean documentsVerified;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    public GarageEntity() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getGarageName() {
+        return garageName;
+    }
+
+    public void setGarageName(String garageName) {
+        this.garageName = garageName;
+    }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public Double getLocationLat() {
+        return locationLat;
+    }
+
+    public void setLocationLat(Double locationLat) {
+        this.locationLat = locationLat;
+    }
+
+    public Double getLocationLng() {
+        return locationLng;
+    }
+
+    public void setLocationLng(Double locationLng) {
+        this.locationLng = locationLng;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getGarageType() {
+        return garageType;
+    }
+
+    public void setGarageType(String garageType) {
+        this.garageType = garageType;
+    }
+
+    public Integer getYearsOfService() {
+        return yearsOfService;
+    }
+
+    public void setYearsOfService(Integer yearsOfService) {
+        this.yearsOfService = yearsOfService;
+    }
+
+    public Double getServiceQualityScore() {
+        return serviceQualityScore;
+    }
+
+    public void setServiceQualityScore(Double serviceQualityScore) {
+        this.serviceQualityScore = serviceQualityScore;
+    }
+
+    public Double getTrustScore() {
+        return trustScore;
+    }
+
+    public void setTrustScore(Double trustScore) {
+        this.trustScore = trustScore;
+    }
+
+    public Boolean getDocumentsVerified() {
+        return documentsVerified;
+    }
+
+    public void setDocumentsVerified(Boolean documentsVerified) {
+        this.documentsVerified = documentsVerified;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+}

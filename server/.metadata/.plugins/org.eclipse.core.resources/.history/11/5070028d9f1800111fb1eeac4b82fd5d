@@ -1,0 +1,70 @@
+package com.example.demo.controller;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.demo.Exception.ExceptionMessage;
+import com.example.demo.entity.UserEntity;
+import com.example.demo.entity.userentity;
+import com.example.demo.repositories.userrepo;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final userrepo userrepo;
+
+    public UserController(userrepo userrepo) {
+        this.userrepo = userrepo;
+    }
+
+    // Get all users
+    @GetMapping
+    public List<UserEntity> getAllUsers() {
+        return userrepo.findAll();
+    }
+
+    // Get user by ID
+    @GetMapping("/{id}")
+    public UserEntity getUserById(@PathVariable Long id) {
+        return userrepo.findById(id)
+                .orElseThrow(() -> new ExceptionMessage("User not found with id: " + id));
+    }
+
+    // Create user
+    @PostMapping
+    public ResponseEntity<UserEntity> createUser(@RequestBody UserEntity user) {
+    	UserEntity savedUser = userrepo.save(user);
+        return ResponseEntity.ok(savedUser);
+    }
+
+    // Update user
+    @PutMapping("/{id}")
+    public UserEntity updateUser(@PathVariable Long id, @RequestBody userentity user) {
+
+    	UserEntity existingUser = userrepo.findById(id)
+                .orElseThrow(() -> new ExceptionMessage("User not found with id: " + id));
+
+        existingUser.setUsername(user.getUsername());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setPhoneNumber(user.getPhoneNumber());
+        existingUser.setSubscriptionPlan(user.getSubscriptionPlan());
+        existingUser.setAccountStatus(user.getAccountStatus());
+
+        return userrepo.save(existingUser);
+    }
+
+    // Delete user
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+
+        userentity user = userrepo.findById(id)
+                .orElseThrow(() -> new ExceptionMessage("User not found with id: " + id));
+
+        userrepo.delete(user);
+
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -1,0 +1,5 @@
+package com.wheelconnect.repositories;
+
+public class SubscriptionRepository {
+
+}

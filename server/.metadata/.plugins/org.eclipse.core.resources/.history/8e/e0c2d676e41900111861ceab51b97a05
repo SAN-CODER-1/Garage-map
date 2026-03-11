@@ -1,0 +1,5 @@
+package com.wheelconnect.entity;
+
+public class Subscription {
+
+}

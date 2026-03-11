@@ -1,0 +1,5 @@
+package com.wheelconnect.controller;
+
+public class AuthController {
+
+}
