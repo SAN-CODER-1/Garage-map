@@ -1,18 +1,21 @@
 package com.wheelconnect.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
 import com.wheelconnect.Security.JwtUtil;
 import com.wheelconnect.dto.LoginRequest;
 import com.wheelconnect.entity.UserEntity;
 import com.wheelconnect.repositories.userrepo;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
 public class AuthController {
 
     private final JwtUtil jwtUtil;
@@ -25,8 +28,36 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateToken(HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        for (Cookie cookie : cookies) {
+
+            if (cookie.getName().equals("wheelconnect_token")) {
+
+                String token = cookie.getValue();
+
+                try {
+                    jwtUtil.extractUsername(token);
+                    return ResponseEntity.ok("valid");
+                } catch (Exception e) {
+                    return ResponseEntity.status(401).build();
+                }
+            }
+        }
+
+        return ResponseEntity.status(401).build();
+    }
+
     @PostMapping("/login")
-    public UserEntity login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<UserEntity> login(@RequestBody LoginRequest request,
+                                            HttpServletResponse response) {
 
         UserEntity user = userrepo.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -44,6 +75,6 @@ public class AuthController {
 
         response.addCookie(cookie);
 
-        return user;
+        return ResponseEntity.ok(user);
     }
 }
