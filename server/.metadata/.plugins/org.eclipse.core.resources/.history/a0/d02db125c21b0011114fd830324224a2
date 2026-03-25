@@ -1,5 +1,0 @@
-package com.wheelconnect.dto;
-
-public class LoginRequest {
-
-}

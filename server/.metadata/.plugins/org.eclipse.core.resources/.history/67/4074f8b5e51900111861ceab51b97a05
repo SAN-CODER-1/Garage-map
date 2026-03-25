@@ -1,5 +1,0 @@
-package com.wheelconnect.Security;
-
-public class JwtUtil {
-
-}

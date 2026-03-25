@@ -2,15 +2,20 @@ package com.wheelconnect.Security;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
-public class JwtFilter extends GenericFilter {
+public class JwtFilter implements Filter {
 
     private final JwtUtil jwtUtil;
 
-    public JwtFilter(JwtUtil jwtUtil){
+    public JwtFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
 
@@ -21,16 +26,49 @@ public class JwtFilter extends GenericFilter {
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
+        HttpServletResponse res = (HttpServletResponse) response;
 
-        String authHeader = req.getHeader("Authorization");
+        String username = null;
+        String token = null;
 
-        if(authHeader != null && authHeader.startsWith("Bearer ")){
+        Cookie[] cookies = req.getCookies();
 
-            String token = authHeader.substring(7);
-            jwtUtil.extractUsername(token);
+        if (cookies != null) {
 
+            for (Cookie cookie : cookies) {
+
+                if ("wheelconnect_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                }
+            }
         }
 
-        chain.doFilter(request,response);
+        if (token != null) {
+
+            try {
+
+                username = jwtUtil.extractUsername(token);
+
+                if (username != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(
+                                    username,
+                                    null,
+                                    Collections.emptyList()
+                            );
+
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+
+            } catch (Exception e) {
+
+                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+        }
+
+        chain.doFilter(request, response);
     }
 }

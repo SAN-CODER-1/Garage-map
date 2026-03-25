@@ -18,6 +18,11 @@ public class Booking {
     private Long garageId;
     private Long employeeId;
 
+    // ✅ Vehicle Details
+    private String vehicleName;     // e.g., Honda City
+    private String vehicleModel;    // e.g., 2022
+    private String vehicleType;     // e.g., Car, Bike
+
     private String issueType;
 
     @Column(length = 500)
@@ -35,117 +40,141 @@ public class Booking {
 
     private LocalDateTime createdAt;
 
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public String getBookingId() {
-		return bookingId;
-	}
-
-	public void setBookingId(String bookingId) {
-		this.bookingId = bookingId;
-	}
-
-	public Long getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
-
-	public Long getGarageId() {
-		return garageId;
-	}
-
-	public void setGarageId(Long garageId) {
-		this.garageId = garageId;
-	}
-
-	public Long getEmployeeId() {
-		return employeeId;
-	}
-
-	public void setEmployeeId(Long employeeId) {
-		this.employeeId = employeeId;
-	}
-
-	public String getIssueType() {
-		return issueType;
-	}
-
-	public void setIssueType(String issueType) {
-		this.issueType = issueType;
-	}
-
-	public String getIssueDescription() {
-		return issueDescription;
-	}
-
-	public void setIssueDescription(String issueDescription) {
-		this.issueDescription = issueDescription;
-	}
-
-	public String getBookingStatus() {
-		return bookingStatus;
-	}
-
-	public void setBookingStatus(String bookingStatus) {
-		this.bookingStatus = bookingStatus;
-	}
-
-	public Double getServicePrice() {
-		return servicePrice;
-	}
-
-	public void setServicePrice(Double servicePrice) {
-		this.servicePrice = servicePrice;
-	}
-
-	public LocalDateTime getServiceStartTime() {
-		return serviceStartTime;
-	}
-
-	public void setServiceStartTime(LocalDateTime serviceStartTime) {
-		this.serviceStartTime = serviceStartTime;
-	}
-
-	public LocalDateTime getServiceEndTime() {
-		return serviceEndTime;
-	}
-
-	public void setServiceEndTime(LocalDateTime serviceEndTime) {
-		this.serviceEndTime = serviceEndTime;
-	}
-
-	public Double getBookingLocationLat() {
-		return bookingLocationLat;
-	}
-
-	public void setBookingLocationLat(Double bookingLocationLat) {
-		this.bookingLocationLat = bookingLocationLat;
-	}
-
-	public Double getBookingLocationLng() {
-		return bookingLocationLng;
-	}
-
-	public void setBookingLocationLng(Double bookingLocationLng) {
-		this.bookingLocationLng = bookingLocationLng;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
     // Getters and Setters
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getBookingId() {
+        return bookingId;
+    }
+
+    public void setBookingId(String bookingId) {
+        this.bookingId = bookingId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getGarageId() {
+        return garageId;
+    }
+
+    public void setGarageId(Long garageId) {
+        this.garageId = garageId;
+    }
+
+    public Long getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(Long employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public String getVehicleName() {
+        return vehicleName;
+    }
+
+    public void setVehicleName(String vehicleName) {
+        this.vehicleName = vehicleName;
+    }
+
+    public String getVehicleModel() {
+        return vehicleModel;
+    }
+
+    public void setVehicleModel(String vehicleModel) {
+        this.vehicleModel = vehicleModel;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
+    }
+
+    public String getIssueType() {
+        return issueType;
+    }
+
+    public void setIssueType(String issueType) {
+        this.issueType = issueType;
+    }
+
+    public String getIssueDescription() {
+        return issueDescription;
+    }
+
+    public void setIssueDescription(String issueDescription) {
+        this.issueDescription = issueDescription;
+    }
+
+    public String getBookingStatus() {
+        return bookingStatus;
+    }
+
+    public void setBookingStatus(String bookingStatus) {
+        this.bookingStatus = bookingStatus;
+    }
+
+    public Double getServicePrice() {
+        return servicePrice;
+    }
+
+    public void setServicePrice(Double servicePrice) {
+        this.servicePrice = servicePrice;
+    }
+
+    public LocalDateTime getServiceStartTime() {
+        return serviceStartTime;
+    }
+
+    public void setServiceStartTime(LocalDateTime serviceStartTime) {
+        this.serviceStartTime = serviceStartTime;
+    }
+
+    public LocalDateTime getServiceEndTime() {
+        return serviceEndTime;
+    }
+
+    public void setServiceEndTime(LocalDateTime serviceEndTime) {
+        this.serviceEndTime = serviceEndTime;
+    }
+
+    public Double getBookingLocationLat() {
+        return bookingLocationLat;
+    }
+
+    public void setBookingLocationLat(Double bookingLocationLat) {
+        this.bookingLocationLat = bookingLocationLat;
+    }
+
+    public Double getBookingLocationLng() {
+        return bookingLocationLng;
+    }
+
+    public void setBookingLocationLng(Double bookingLocationLng) {
+        this.bookingLocationLng = bookingLocationLng;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

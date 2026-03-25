@@ -7,20 +7,51 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.wheelconnect.Exception.ExceptionMessage;
+import com.wheelconnect.Security.JwtUtil;
 import com.wheelconnect.entity.UserEntity;
 import com.wheelconnect.repositories.userrepo;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
-@RequestMapping("/auth/users")
-@CrossOrigin(origins = "http://localhost:8081")
+@RequestMapping("/users")
+@CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
 public class UserController {
 
     private final userrepo userrepo;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
-    public UserController(userrepo userrepo, PasswordEncoder passwordEncoder) {
+    public UserController(userrepo userrepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userrepo = userrepo;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+    }
+
+    // IMPORTANT: place this before /{id}
+    @GetMapping("/me")
+    public UserEntity getCurrentUser(HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+        String token = null;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("wheelconnect_token")) {
+                    token = cookie.getValue();
+                }
+            }
+        }
+
+        if (token == null) {
+            throw new ExceptionMessage("Unauthorized");
+        }
+
+        String email = jwtUtil.extractUsername(token);
+
+        return userrepo.findByEmail(email)
+                .orElseThrow(() -> new ExceptionMessage("User not found"));
     }
 
     @GetMapping
@@ -38,7 +69,6 @@ public class UserController {
     public ResponseEntity<UserEntity> createUser(@RequestBody UserEntity user) {
 
         String hashedPassword = passwordEncoder.encode(user.getPasswordHash());
-
         user.setPasswordHash(hashedPassword);
 
         UserEntity savedUser = userrepo.save(user);
@@ -50,7 +80,7 @@ public class UserController {
     public UserEntity updateUser(@PathVariable Long id, @RequestBody UserEntity user) {
 
         UserEntity existingUser = userrepo.findById(id)
-                .orElseThrow(() -> new ExceptionMessage("User not found with id: " + id));
+                .orElseThrow(() -> new ExceptionMessage("User not found"));
 
         existingUser.setUsername(user.getUsername());
         existingUser.setEmail(user.getEmail());
@@ -65,7 +95,7 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
 
         UserEntity user = userrepo.findById(id)
-                .orElseThrow(() -> new ExceptionMessage("User not found with id: " + id));
+                .orElseThrow(() -> new ExceptionMessage("User not found"));
 
         userrepo.delete(user);
 

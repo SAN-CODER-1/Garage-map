@@ -1,0 +1,5 @@
+package com.wheelconnect.config;
+
+public class WebSocketConfig {
+
+}

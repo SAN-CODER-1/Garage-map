@@ -8,7 +8,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.*;
+
+import jakarta.servlet.Filter;
 
 import java.util.List;
 
@@ -17,24 +20,22 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, Filter jwtFilter) throws Exception {
 
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> {})   // enable cors
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
             .authorizeHttpRequests(auth -> auth
-
                     .requestMatchers("/auth/**").permitAll()
-                    .requestMatchers("/garages/**").hasAnyRole("ADMIN","GARAGE")
-                    .requestMatchers("/bookings/**").hasAnyRole("USER","GARAGE")
-                    .requestMatchers("/reviews/**").hasRole("USER")
-                    .requestMatchers("/subscriptions/**").hasRole("USER")
-                    .requestMatchers("/emergency/**").hasAnyRole("USER","ADMIN")
+                    .requestMatchers("/api/**").authenticated()
+                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                    .anyRequest().permitAll()
+            )
 
-                    .anyRequest().authenticated()
-            );
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -49,9 +50,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
         return source;

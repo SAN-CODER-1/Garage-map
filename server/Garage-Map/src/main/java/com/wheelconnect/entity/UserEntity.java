@@ -54,6 +54,13 @@ public class UserEntity {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @Column(name = "garage_name")
+    private String garageName;
+
+    @Column(name = "garage_address")
+    private String garageAddress;
+    
 
     // ENUMS
     public enum Role {
@@ -152,5 +159,20 @@ public class UserEntity {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+    public String getGarageName() {
+        return garageName;
+    }
+
+    public void setGarageName(String garageName) {
+        this.garageName = garageName;
+    }
+
+    public String getGarageAddress() {
+        return garageAddress;
+    }
+
+    public void setGarageAddress(String garageAddress) {
+        this.garageAddress = garageAddress;
     }
 }

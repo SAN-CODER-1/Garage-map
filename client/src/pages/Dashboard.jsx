@@ -1,171 +1,171 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 function Dashboard() {
+
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:8080/auth/users/me", {
+      credentials: "include"
+    })
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-xl">
+        Loading user data...
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-100">
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 flex justify-between items-center px-8 py-4 bg-black text-white shadow">
-        <h1 className="text-2xl font-bold tracking-wide">WheelConnect</h1>
-
-        <div className="space-x-6 hidden md:flex items-center">
-          <a href="/home" className="hover:text-gray-300">Home</a>
+      <nav className="bg-black text-white px-8 py-4 flex justify-between">
+        <h1 className="text-2xl font-bold">WheelConnect</h1>
+        <div className="flex gap-6">
           <a href="/garages" className="hover:text-gray-300">Garages</a>
           <a href="/bookings" className="hover:text-gray-300">Bookings</a>
-          <a
-            href="/"
-            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition"
-          >
-            Login
-          </a>
         </div>
       </nav>
 
+      <div className="max-w-6xl mx-auto py-12 px-6">
 
-      {/* Hero */}
-      <section className="text-center py-24 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">
-          Instant Garage Help Near You
+        {/* Welcome */}
+        <h2 className="text-3xl font-bold mb-8">
+          Welcome, {user.username}
         </h2>
 
-        <p className="text-lg opacity-90 mb-10">
-          Book nearby mechanics, emergency towing, and vehicle repair in seconds.
-        </p>
+        {/* User Details */}
+        <div className="grid md:grid-cols-2 gap-8">
 
-        <div className="flex justify-center gap-6 flex-wrap">
-          <button className="bg-white text-blue-700 px-6 py-3 rounded font-semibold hover:bg-gray-200 transition">
-            Find Garage
-          </button>
+          {/* Profile Card */}
+          <div className="bg-white p-6 rounded-lg shadow">
 
-          <button className="bg-red-500 px-6 py-3 rounded font-semibold hover:bg-red-600 transition">
-            Emergency Help
-          </button>
-        </div>
-      </section>
+            <h3 className="text-xl font-semibold mb-4">
+              User Profile
+            </h3>
 
+            <div className="space-y-3 text-gray-700">
 
-      {/* Services */}
-      <section className="px-8 py-20 max-w-7xl mx-auto">
+              <p><b>ID:</b> {user.id}</p>
 
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Our Services
-        </h2>
+              <p><b>Username:</b> {user.username}</p>
 
-        <div className="grid md:grid-cols-4 gap-8">
+              <p><b>Email:</b> {user.email}</p>
 
-          {[
-            {
-              title: "Puncture Repair",
-              desc: "Quick tire repair from trusted garages."
-            },
-            {
-              title: "Battery Jumpstart",
-              desc: "Dead battery? Get instant assistance."
-            },
-            {
-              title: "Oil Change",
-              desc: "Fast oil replacement and service."
-            },
-            {
-              title: "Emergency Tow",
-              desc: "Vehicle breakdown towing support."
-            }
-          ].map((service, index) => (
+              <p><b>Phone Number:</b> {user.phoneNumber}</p>
 
-            <div
-              key={index}
-              className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
-            >
-              <h3 className="text-xl font-semibold mb-2">
-                {service.title}
-              </h3>
-
-              <p className="text-gray-600">
-                {service.desc}
+              <p>
+                <b>Role:</b>
+                <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                  {user.role}
+                </span>
               </p>
+
+              <p>
+                <b>Status:</b>
+                <span className="ml-2 bg-green-100 text-green-700 px-2 py-1 rounded">
+                  {user.accountStatus}
+                </span>
+              </p>
+
+              <p><b>Created At:</b> {user.createdAt}</p>
+
+              <p><b>Updated At:</b> {user.updatedAt}</p>
+
             </div>
 
-          ))}
+          </div>
 
-        </div>
-      </section>
+          {/* Account Info */}
+          <div className="bg-white p-6 rounded-lg shadow">
 
+            <h3 className="text-xl font-semibold mb-4">
+              Account Information
+            </h3>
 
-      {/* Nearby Garages */}
-      <section className="bg-gray-100 py-20 px-8">
+            <div className="space-y-4 text-gray-700">
 
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Nearby Garages
-        </h2>
-
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
-
-          {[
-            {
-              name: "Speed Auto Garage",
-              rating: "4.5",
-              distance: "2.1 km"
-            },
-            {
-              name: "City Wheels Service",
-              rating: "4.2",
-              distance: "3.4 km"
-            }
-          ].map((garage, index) => (
-
-            <div
-              key={index}
-              className="bg-white p-6 rounded-lg shadow flex justify-between items-center hover:shadow-lg transition"
-            >
-
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {garage.name}
-                </h3>
-
-                <p className="text-yellow-500">
-                  ⭐ {garage.rating}
-                </p>
-
-                <span className="text-sm text-gray-500">
-                  {garage.distance} away
+              <div className="flex justify-between border-b pb-2">
+                <span>Subscription Plan</span>
+                <span className="font-semibold">
+                  {user.subscriptionPlan}
                 </span>
               </div>
 
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Book
-              </button>
+              <div className="flex justify-between border-b pb-2">
+                <span>Total Services Taken</span>
+                <span className="font-semibold">
+                  {user.totalServicesTaken}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-b pb-2">
+                <span>Account Role</span>
+                <span className="font-semibold">
+                  {user.role}
+                </span>
+              </div>
 
             </div>
 
-          ))}
+          </div>
 
         </div>
-      </section>
 
+        {/* Quick Actions */}
+        <div className="mt-12">
 
-      {/* CTA */}
-      <section className="text-center py-20 bg-black text-white">
+          <h3 className="text-2xl font-bold mb-6">
+            Quick Services
+          </h3>
 
-        <h2 className="text-3xl font-bold mb-6">
-          Need urgent vehicle help?
-        </h2>
+          <div className="grid md:grid-cols-4 gap-6">
 
-        <p className="opacity-80 mb-8">
-          Connect with nearby mechanics instantly.
-        </p>
+            {[
+              "Puncture Repair",
+              "Battery Jumpstart",
+              "Oil Change",
+              "Emergency Tow"
+            ].map((service, index) => (
 
-        <button className="bg-red-500 px-8 py-3 rounded text-lg hover:bg-red-600 transition">
-          Request Emergency Service
-        </button>
+              <div
+                key={index}
+                className="bg-white p-6 rounded shadow hover:shadow-lg transition"
+              >
+                <h4 className="text-lg font-semibold">
+                  {service}
+                </h4>
 
-      </section>
+                <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  Request
+                </button>
 
+              </div>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 text-center py-6 mt-auto">
-        <p>© 2026 WheelConnect. All rights reserved.</p>
+      <footer className="bg-gray-900 text-gray-300 text-center py-6 mt-12">
+        © 2026 WheelConnect
       </footer>
 
     </div>

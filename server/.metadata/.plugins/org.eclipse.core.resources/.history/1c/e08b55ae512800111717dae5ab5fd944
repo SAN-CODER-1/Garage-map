@@ -1,0 +1,42 @@
+package com.wheelconnect.controller;
+
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
+
+import java.util.Map;
+
+@Controller
+public class LocationController {
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public LocationController(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    // 📍 Mechanic sends location here
+    @MessageMapping("/mechanic-location")
+    public void receiveLocation(@Payload Map<String, Object> payload) {
+
+        System.out.println("📥 Received from mechanic: " + payload);
+
+        // Extract data
+        Object bookingId = payload.get("bookingId");
+        Object lat = payload.get("lat");
+        Object lng = payload.get("lng");
+
+        if (bookingId == null || lat == null || lng == null) {
+            System.out.println("❌ Invalid payload");
+            return;
+        }
+
+        // 🚀 Send to user (topic)
+        String destination = "/topic/booking/" + bookingId;
+
+        messagingTemplate.convertAndSend(destination, payload);
+
+        System.out.println("📤 Sent to: " + destination);
+    }
+}

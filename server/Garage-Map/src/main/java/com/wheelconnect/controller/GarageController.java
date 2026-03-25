@@ -1,9 +1,13 @@
 package com.wheelconnect.controller;
 
 import com.wheelconnect.entity.GarageEntity;
+import com.wheelconnect.entity.UserEntity;
 import com.wheelconnect.repositories.GarageRepository;
+import com.wheelconnect.repositories.userrepo;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,34 +15,89 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/garages")
+@CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
 public class GarageController {
 
     @Autowired
     private GarageRepository garageRepository;
 
-    // Create Garage
+    @Autowired
+    private userrepo userrepo;
+
+    // CREATE GARAGE (ONLY GARAGE_OWNER)
+    @GetMapping
+    public List<GarageEntity> getAllGarages() {
+    	return garageRepository.findAll();
+    }
     @PostMapping
-    public GarageEntity createGarage(@RequestBody GarageEntity garage) {
+    @PreAuthorize("hasRole('GARAGE_OWNER')")
+    public GarageEntity createGarage(
+            @RequestBody GarageEntity garage,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        UserEntity user = userrepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Prevent multiple garages
+        GarageEntity existing = garageRepository.findByOwnerId(user.getId());
+        if (existing != null) {
+            throw new RuntimeException("Garage already registered for this owner");
+        }
+
+        garage.setOwnerId(user.getId());
+
         return garageRepository.save(garage);
     }
 
-    // Get all garages
-    @GetMapping
-    public List<GarageEntity> getAllGarages() {
-        return garageRepository.findAll();
-    }
+    // GET ALL GARAGES
 
-    // Get garage by id
+    // GET GARAGE BY ID
     @GetMapping("/{id}")
     public Optional<GarageEntity> getGarageById(@PathVariable Long id) {
         return garageRepository.findById(id);
     }
 
-    // Update garage
-    @PutMapping("/{id}")
-    public GarageEntity updateGarage(@PathVariable Long id, @RequestBody GarageEntity updatedGarage) {
+    // GET GARAGE OF LOGGED-IN OWNER
+    @GetMapping("/owner")
+    @PreAuthorize("hasRole('GARAGE_OWNER')")
+    public GarageEntity getOwnerGarage(Authentication authentication) {
 
-    	GarageEntity garage = garageRepository.findById(id).orElseThrow();
+        String email = authentication.getName();
+
+        UserEntity user = userrepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        GarageEntity garage = garageRepository.findByOwnerId(user.getId());
+
+        if (garage == null) {
+            throw new RuntimeException("Garage not found for this owner");
+        }
+
+        return garage;
+    }
+
+    // UPDATE GARAGE
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('GARAGE_OWNER')")
+    public GarageEntity updateGarage(
+            @PathVariable Long id,
+            @RequestBody GarageEntity updatedGarage,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        UserEntity user = userrepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        GarageEntity garage = garageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Garage not found"));
+
+        // Ensure owner can update only their garage
+        if (!garage.getOwnerId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
 
         garage.setGarageName(updatedGarage.getGarageName());
         garage.setAddress(updatedGarage.getAddress());
@@ -47,14 +106,33 @@ public class GarageController {
         garage.setServiceQualityScore(updatedGarage.getServiceQualityScore());
         garage.setTrustScore(updatedGarage.getTrustScore());
         garage.setDocumentsVerified(updatedGarage.getDocumentsVerified());
+        garage.setLocationLat(updatedGarage.getLocationLat());
+        garage.setLocationLng(updatedGarage.getLocationLng());
 
         return garageRepository.save(garage);
     }
 
-    // Delete garage
+    // DELETE GARAGE
     @DeleteMapping("/{id}")
-    public String deleteGarage(@PathVariable Long id) {
+    @PreAuthorize("hasRole('GARAGE_OWNER')")
+    public String deleteGarage(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        UserEntity user = userrepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        GarageEntity garage = garageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Garage not found"));
+
+        if (!garage.getOwnerId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
         garageRepository.deleteById(id);
-        return "Garage deleted";
+
+        return "Garage deleted successfully";
     }
 }

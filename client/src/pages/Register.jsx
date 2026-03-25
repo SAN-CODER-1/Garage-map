@@ -3,108 +3,71 @@ import axios from "axios";
 
 function Register() {
 
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     username: "",
     email: "",
     phoneNumber: "",
-    passwordHash: "",
-    role: "USER",
-    subscriptionPlan: "FREE",
-    accountStatus: "ACTIVE"
+    password: "",
+    role: ""
   });
 
-  const [message, setMessage] = useState("");
-
-  const handleChange = (e) => {
-
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-
+  const change = (e) => {
+    setForm({...form, [e.target.name]: e.target.value});
   };
 
-  const handleSubmit = async (e) => {
 
-    e.preventDefault();
 
-    try {
+const submit = async (e) => {
+  e.preventDefault();
 
-      await axios.post(
-        "http://localhost:8080/auth/users",
-        formData
-      );
+  try {
 
-      setMessage("User registered successfully");
+    const url =
+      form.role === "GARAGE_OWNER"
+        ? "http://localhost:8080/auth/register/garage"
+        : "http://localhost:8080/auth/register/user";
 
-    } catch (error) {
+    await axios.post(url, form);
 
-      setMessage("Registration failed");
+    alert("Registered successfully");
+    window.location.href = "/login";
 
-    }
-
-  };
+  } catch {
+    alert("Registration failed");
+  }
+};
 
   return (
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh"}}>
 
-      <form onSubmit={handleSubmit} style={{width:"400px",padding:"30px",border:"1px solid #ddd",borderRadius:"10px"}}>
+    <div className="flex justify-center items-center h-screen">
 
-        <h2>WheelConnect Register</h2>
+      <form onSubmit={submit} className="w-96 p-8 border shadow">
 
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          onChange={handleChange}
-          required
-          style={{width:"100%",padding:"10px",marginTop:"10px"}}
-        />
+        <h2 className="text-xl font-bold mb-4">Register</h2>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          onChange={handleChange}
-          required
-          style={{width:"100%",padding:"10px",marginTop:"10px"}}
-        />
+        <input name="username" placeholder="Username"
+          onChange={change} className="w-full border p-2 mb-3"/>
 
-        <input
-          type="text"
-          name="phoneNumber"
-          placeholder="Phone Number"
-          onChange={handleChange}
-          required
-          style={{width:"100%",padding:"10px",marginTop:"10px"}}
-        />
+        <input name="email" placeholder="Email"
+          onChange={change} className="w-full border p-2 mb-3"/>
 
-        <input
-          type="password"
-          name="passwordHash"
-          placeholder="Password"
-          onChange={handleChange}
-          required
-          style={{width:"100%",padding:"10px",marginTop:"10px"}}
-        />
+        <input name="phoneNumber" placeholder="Phone"
+          onChange={change} className="w-full border p-2 mb-3"/>
 
-        <select
-          name="role"
-          onChange={handleChange}
-          style={{width:"100%",padding:"10px",marginTop:"10px"}}
-        >
+        <input type="password" name="password" placeholder="Password"
+          onChange={change} className="w-full border p-2 mb-3"/>
+
+        <select name="role" onChange={change}
+          className="w-full border p-2 mb-4">
+
           <option value="USER">User</option>
-          <option value="GARAGE">Garage Owner</option>
+          <option value="GARAGE_OWNER">Garage Owner</option>
+
         </select>
 
-        <button
-          type="submit"
-          style={{width:"100%",padding:"10px",marginTop:"20px",background:"#2563eb",color:"white",border:"none"}}
-        >
+        <button className="w-full bg-blue-600 text-white p-2">
           Register
         </button>
-
-        <p style={{color:"green",marginTop:"10px"}}>{message}</p>
 
       </form>
 
