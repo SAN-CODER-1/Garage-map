@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+
 
 @RestController
 @RequestMapping("/service-history")
@@ -20,18 +20,24 @@ public class ServiceHistoryController {
     }
 
     // ✅ START SERVICE (QR SCAN)
+    // ✅ START SERVICE (QR SCAN)
     @PutMapping("/{bookingId}/start-secure")
     public ServiceHistory startServiceSecure(
             @PathVariable Long bookingId,
             @RequestParam String token) {
 
-        ServiceHistory history = repository
-                .findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
-//
-//        if (!history.getQrToken().equals(token)) {
-//            throw new RuntimeException("Invalid QR token");
-//        }
+        // ✅ Dynamically create the history if missing
+        ServiceHistory history = repository.findByBookingId(bookingId)
+                .orElseGet(() -> {
+                    ServiceHistory newHistory = new ServiceHistory();
+                    newHistory.setBookingId(bookingId);
+                    newHistory.setQrToken(token);
+                    
+                    // 👇 FIX: Assign a random UUID to prevent Null Tracking ID SQL Error
+                    newHistory.setTrackingId(java.util.UUID.randomUUID().toString()); 
+                    
+                    return newHistory;
+                });
 
         // 🚨 prevent duplicate scan
         if ("IN_PROGRESS".equals(history.getStatus())) {
@@ -41,8 +47,10 @@ public class ServiceHistoryController {
         history.setStatus("IN_PROGRESS");
         history.setServiceStartTime(LocalDateTime.now());
 
+        // Saves to MySQL successfully!
         return repository.save(history);
     }
+
     @GetMapping("/booking/{bookingId}")
     public ServiceHistory getByBookingId(@PathVariable Long bookingId) {
 
@@ -71,13 +79,13 @@ public class ServiceHistoryController {
         return repository.save(history);
     }
 
-    // ✅ USER APPROVES
     @PutMapping("/{id}/approve")
     public ServiceHistory approve(@PathVariable Long id) {
 
         ServiceHistory history = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
+        // 🚨 THIS IS MOST LIKELY YOUR 500 ERROR 🚨
         if (!"PENDING_APPROVAL".equals(history.getStatus())) {
             throw new RuntimeException("Invalid state");
         }
@@ -88,6 +96,7 @@ public class ServiceHistoryController {
 
         return repository.save(history);
     }
+
 
     // ❌ USER REJECTS
     @PutMapping("/{id}/reject")
@@ -163,6 +172,27 @@ public class ServiceHistoryController {
         history.setFinalCost(req.getFinalCost());
         history.setServiceEndTime(LocalDateTime.now());
         history.setStatus("PAYMENT_PENDING");
+
+        return repository.save(history);
+    }
+    @PutMapping("/booking/{bookingId}/start-work")
+    public ServiceHistory startWork(@PathVariable Long bookingId) {
+
+        ServiceHistory history = repository.findByBookingId(bookingId)
+                .orElseGet(() -> {
+                    ServiceHistory newHistory = new ServiceHistory();
+                    newHistory.setBookingId(bookingId);
+                    newHistory.setTrackingId(java.util.UUID.randomUUID().toString());
+                    return newHistory;
+                });
+
+        // prevent duplicate start
+        if ("IN_PROGRESS".equals(history.getStatus())) {
+            return history;
+        }
+
+        history.setStatus("IN_PROGRESS");
+        history.setServiceStartTime(LocalDateTime.now());
 
         return repository.save(history);
     }

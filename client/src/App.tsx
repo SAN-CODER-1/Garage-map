@@ -60,27 +60,29 @@ const App = () => (
     <GarageDashboard />
   </ProtectedRoute>
 } /> */}
-            <Route path="/login" element={<Login/>} />
-            <Route path="/home" element={<Home/>} />
-            <Route path="/register" element={<Register/>}/>
-
+            {/* PUBLIC */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<Navigate to="/home" />} />
         
-            <Route path="/dashboard" element={ <Dashboard />} />
-            <Route path="/start-service/:bookingId" element={<StartServicePage />} />
+            {/* USER DASHBOARD & BOOKING */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/garages" element={<Booking />} />
             <Route path="/service/:bookingId" element={<ServicePage />} />
             <Route path="/approval/:bookingId" element={<ApprovalPage />} />
-            <Route path="/complete/:bookingId" element={<CompletePage />} />
             <Route path="/payment/:bookingId" element={<PaymentPage />} />
-            <Route path="/review/:bookingId" element={<PaymentPage />} />
+            <Route path="/review/:bookingId" element={<Review />} />
+            <Route path="/complete/:bookingId" element={<CompletePage />} />
+            <Route path="/start-service/:bookingId" element={<StartServicePage />} />
 
-           
+            {/* GARAGE OWNER */}
+            <Route path="/garage-dashboard" element={<GarageDashboard />} />
+            <Route path="/create-garage" element={<CreateGarage />} />
+            <Route path="/garage-bookings" element={<MyBookings />} />
+            <Route path="/garage-employee" element={<ManageEmployees />} />
             <Route path="/scan/:bookingId" element={<ScanPage />} />
-            <Route path="/garages" element={<Booking/>}/>
-            <Route path="/garage-bookings" element={<MyBookings/>}/>
-            <Route path="/garage-employee" element={<ManageEmployees/>}/>
             <Route path="/mechanic/:bookingId" element={<MechanicWorkPage />} />
-            <Route path="/create-garage" element={ <CreateGarage/>} />
-            <Route path="/garage-dashboard" element={<GarageDashboard/>}/>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
