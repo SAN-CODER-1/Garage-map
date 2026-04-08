@@ -4,7 +4,10 @@ import com.wheelconnect.entity.ServiceHistory;
 import com.wheelconnect.repositories.ServiceHistoryRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/service-history")
@@ -16,18 +19,152 @@ public class ServiceHistoryController {
         this.repository = repository;
     }
 
-    @PostMapping
-    public ServiceHistory addServiceHistory(@RequestBody ServiceHistory history) {
+    // ✅ START SERVICE (QR SCAN)
+    @PutMapping("/{bookingId}/start-secure")
+    public ServiceHistory startServiceSecure(
+            @PathVariable Long bookingId,
+            @RequestParam String token) {
+
+        ServiceHistory history = repository
+                .findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Service not found"));
+//
+//        if (!history.getQrToken().equals(token)) {
+//            throw new RuntimeException("Invalid QR token");
+//        }
+
+        // 🚨 prevent duplicate scan
+        if ("IN_PROGRESS".equals(history.getStatus())) {
+            return history;
+        }
+
+        history.setStatus("IN_PROGRESS");
+        history.setServiceStartTime(LocalDateTime.now());
+
+        return repository.save(history);
+    }
+    @GetMapping("/booking/{bookingId}")
+    public ServiceHistory getByBookingId(@PathVariable Long bookingId) {
+
+        return repository.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Service history not found for booking: " + bookingId));
+    }
+    // ✅ IDENTIFY PROBLEM
+    @PutMapping("/booking/{bookingId}/identify")
+    public ServiceHistory identifyByBooking(
+            @PathVariable Long bookingId,
+            @RequestBody ServiceHistory req) {
+
+        ServiceHistory history = repository
+                .findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Service not found"));
+
+        if (!"IN_PROGRESS".equals(history.getStatus())) {
+            throw new RuntimeException("Service not started");
+        }
+
+        history.setProblemDescription(req.getProblemDescription());
+        history.setEstimatedCost(req.getEstimatedCost());
+        history.setIssueIdentifiedAt(LocalDateTime.now());
+        history.setStatus("PENDING_APPROVAL");
+
         return repository.save(history);
     }
 
-    @GetMapping
-    public List<ServiceHistory> getAllHistory() {
-        return repository.findAll();
+    // ✅ USER APPROVES
+    @PutMapping("/{id}/approve")
+    public ServiceHistory approve(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        if (!"PENDING_APPROVAL".equals(history.getStatus())) {
+            throw new RuntimeException("Invalid state");
+        }
+
+        history.setApproved(true);
+        history.setApprovedAt(LocalDateTime.now());
+        history.setStatus("APPROVED");
+
+        return repository.save(history);
     }
 
-    @GetMapping("/user/{userId}")
-    public List<ServiceHistory> getUserHistory(@PathVariable Long userId) {
-        return repository.findByUserId(userId);
+    // ❌ USER REJECTS
+    @PutMapping("/{id}/reject")
+    public ServiceHistory reject(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        history.setApproved(false);
+        history.setStatus("REJECTED");
+
+        return repository.save(history);
     }
+
+    // 🚗 TOW CASE
+    @PutMapping("/{id}/tow")
+    public ServiceHistory tow(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id).orElseThrow();
+
+        history.setTowingRequired(true);
+        history.setStatus("TOW_REQUIRED");
+
+        return repository.save(history);
+    }
+
+    // 📅 MULTI DAY CASE
+    @PutMapping("/{id}/multi-day")
+    public ServiceHistory multiDay(
+            @PathVariable Long id,
+            @RequestParam int days) {
+
+        ServiceHistory history = repository.findById(id).orElseThrow();
+
+        history.setMultiDayRequired(true);
+        history.setEstimatedDays(days);
+        history.setStatus("MULTI_DAY");
+
+        return repository.save(history);
+    }
+    @PutMapping("/{id}/pay")
+    public ServiceHistory pay(
+            @PathVariable Long id,
+            @RequestParam String paymentId) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        if (!"PAYMENT_PENDING".equals(history.getStatus())) {
+            throw new RuntimeException("Payment not required");
+        }
+
+        history.setPaymentId(paymentId);
+        history.setPaymentStatus("PAID");
+        history.setPaymentTime(LocalDateTime.now());
+        history.setStatus("COMPLETED"); // final state
+
+        return repository.save(history);
+    }
+    // ✅ COMPLETE SERVICE
+    @PutMapping("/booking/{bookingId}/complete")
+    public ServiceHistory completeByBooking(
+            @PathVariable Long bookingId,
+            @RequestBody ServiceHistory req) {
+
+        ServiceHistory history = repository.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        if (!"APPROVED".equals(history.getStatus())) {
+            throw new RuntimeException("Not approved yet");
+        }
+
+        history.setFinalCost(req.getFinalCost());
+        history.setServiceEndTime(LocalDateTime.now());
+        history.setStatus("PAYMENT_PENDING");
+
+        return repository.save(history);
+    }
+    
 }

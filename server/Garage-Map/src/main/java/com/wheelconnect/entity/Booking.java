@@ -24,8 +24,17 @@ public class Booking {
     private String vehicleType;     // e.g., Car, Bike
 
     private String issueType;
+    private String qrToken;
 
-    @Column(length = 500)
+    public String getQrToken() {
+		return qrToken;
+	}
+
+	public void setQrToken(String qrToken) {
+		this.qrToken = qrToken;
+	}
+
+	@Column(length = 500)
     private String issueDescription;
 
     private String bookingStatus;

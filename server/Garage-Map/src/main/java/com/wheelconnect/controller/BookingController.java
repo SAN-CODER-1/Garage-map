@@ -27,7 +27,23 @@ public class BookingController {
 
         return bookingRepository.save(booking);
     }
+    @PutMapping("/{id}/start-secure")
+    public Booking startServiceSecure(
+            @PathVariable Long id,
+            @RequestParam String token) {
 
+        Booking booking = bookingRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        // ❌ COMMENT THIS FOR TESTING
+        // if (!token.equals(booking.getQrToken())) {
+        //     throw new RuntimeException("Invalid QR");
+        // }
+
+        booking.setBookingStatus("IN_PROGRESS");
+
+        return bookingRepository.save(booking);
+    }
     // Create booking (includes vehicle details automatically)
     @PostMapping
     public Booking createBooking(@RequestBody Booking booking) {
@@ -47,10 +63,32 @@ public class BookingController {
     }
 
     // Update booking status
+    @PutMapping("/{id}/start")
+    public Booking startService(@PathVariable Long id) {
+
+        Booking booking = bookingRepository.findById(id).orElseThrow();
+
+        // ✅ Only allow if mechanic reached
+        if (!"REACHED".equals(booking.getBookingStatus())) {
+            throw new RuntimeException("Invalid state. Must be REACHED");
+        }
+
+        booking.setBookingStatus("IN_PROGRESS");
+
+        return bookingRepository.save(booking);
+    }
     @PutMapping("/{id}/status")
     public Booking updateStatus(@PathVariable Long id, @RequestParam String status) {
+
         Booking booking = bookingRepository.findById(id).orElseThrow();
+
         booking.setBookingStatus(status);
+
+        // ✅ When reached → generate QR token
+        if ("REACHED".equals(status)) {
+            booking.setQrToken(java.util.UUID.randomUUID().toString());
+        }
+
         return bookingRepository.save(booking);
     }
 

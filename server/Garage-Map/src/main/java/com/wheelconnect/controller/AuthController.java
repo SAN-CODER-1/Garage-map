@@ -14,6 +14,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
@@ -30,8 +32,73 @@ public class AuthController {
         this.userrepo = userrepo;
         this.passwordEncoder = passwordEncoder;
     }
+    @GetMapping("/users/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
 
-    // REGISTER NORMAL USER
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return ResponseEntity.status(401).body("No cookies");
+        }
+
+        String token = null;
+
+        for (Cookie cookie : cookies) {
+            if ("wheelconnect_token".equals(cookie.getName())) {
+                token = cookie.getValue();
+            }
+        }
+
+        if (token == null) {
+            return ResponseEntity.status(401).body("No token");
+        }
+
+        try {
+            String email = jwtUtil.extractUsername(token);
+
+            UserEntity user = userrepo.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            return ResponseEntity.ok(user);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Invalid token");
+        }
+    }
+    @GetMapping("/validate")
+    public ResponseEntity<?> validate(HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return ResponseEntity.status(401).body("No cookies");
+        }
+
+        String token = null;
+
+        for (Cookie cookie : cookies) {
+            if ("wheelconnect_token".equals(cookie.getName())) {
+                token = cookie.getValue();
+            }
+        }
+
+        if (token == null) {
+            return ResponseEntity.status(401).body("No token");
+        }
+
+        try {
+            String email = jwtUtil.extractUsername(token);
+            String role = jwtUtil.extractRole(token); // ✅ FIXED
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "email", email,
+                            "role", role
+                    )
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Invalid token");
+        }
+    }
     @PostMapping("/register/user")
     public ResponseEntity<UserEntity> registerUser(
             @RequestBody RegisterRequest request,
@@ -42,7 +109,6 @@ public class AuthController {
         }
 
         UserEntity user = new UserEntity();
-
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -51,13 +117,16 @@ public class AuthController {
 
         UserEntity savedUser = userrepo.save(user);
 
-        String token = jwtUtil.generateToken(savedUser.getEmail());
+        String token = jwtUtil.generateToken(
+                savedUser.getEmail(),
+                savedUser.getRole().name()
+        );
+
         setCookie(response, token);
 
         return ResponseEntity.ok(savedUser);
     }
 
-    // REGISTER GARAGE OWNER
     @PostMapping("/register/garage")
     public ResponseEntity<UserEntity> registerGarageOwner(
             @RequestBody RegisterRequest request,
@@ -68,7 +137,6 @@ public class AuthController {
         }
 
         UserEntity owner = new UserEntity();
-
         owner.setUsername(request.getUsername());
         owner.setEmail(request.getEmail());
         owner.setPhoneNumber(request.getPhoneNumber());
@@ -79,61 +147,38 @@ public class AuthController {
 
         UserEntity savedOwner = userrepo.save(owner);
 
-        String token = jwtUtil.generateToken(savedOwner.getEmail());
+        String token = jwtUtil.generateToken(
+                savedOwner.getEmail(),
+                savedOwner.getRole().name()
+        );
+
         setCookie(response, token);
 
         return ResponseEntity.ok(savedOwner);
     }
 
-    // LOGIN
     @PostMapping("/login")
     public ResponseEntity<UserEntity> login(
             @RequestBody LoginRequest request,
             HttpServletResponse response) {
 
-        UserEntity user = userrepo
-                .findByEmail(request.getEmail())
+        UserEntity user = userrepo.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(
                 request.getPassword(),
                 user.getPasswordHash())) {
-
             throw new RuntimeException("Invalid password");
         }
+        
+        String token = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
 
-        String token = jwtUtil.generateToken(user.getEmail());
         setCookie(response, token);
 
         return ResponseEntity.ok(user);
-    }
-
-    // CURRENT USER (works for USER and GARAGE_OWNER)
-    @GetMapping("/users/me")
-    public ResponseEntity<UserEntity> currentUser(
-            HttpServletRequest request) {
-
-        Cookie[] cookies = request.getCookies();
-
-        if (cookies == null) {
-            return ResponseEntity.status(401).build();
-        }
-
-        for (Cookie cookie : cookies) {
-
-            if (cookie.getName().equals("wheelconnect_token")) {
-
-                String token = cookie.getValue();
-                String email = jwtUtil.extractUsername(token);
-
-                UserEntity user =
-                        userrepo.findByEmail(email).orElseThrow();
-
-                return ResponseEntity.ok(user);
-            }
-        }
-
-        return ResponseEntity.status(401).build();
     }
 
     private void setCookie(HttpServletResponse response, String token) {

@@ -4,24 +4,74 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "service_history")
 public class ServiceHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 🔐 Unique tracking ID (public safe)
+    @Column(unique = true, nullable = false)
+    private String trackingId;
+
     private Long bookingId;
     private Long userId;
-    private Long garageId;
+    private Long employeeId;
 
-    private String serviceType;
-
+    // 🔧 Problem details
+    private String problemDescription;
+    private Double estimatedCost;
     private Double finalCost;
 
-    private Long serviceDuration;
+    // 📊 Status flow
+    private String status;
+    // CREATED, REACHED, IN_PROGRESS, ISSUE_IDENTIFIED,
+    // PENDING_APPROVAL, APPROVED, REJECTED,
+    // TOW_REQUIRED, MULTI_DAY, COMPLETED
 
-    private LocalDateTime completionTime;
+    private boolean approved;
+
+    // 🧠 Special cases
+    private boolean towingRequired;
+    private boolean multiDayRequired;
+    private Integer estimatedDays;
+
+    // ⏱ Timeline tracking
+    private LocalDateTime createdAt;
+    private LocalDateTime reachedAt;
+    private LocalDateTime serviceStartTime;
+    private LocalDateTime issueIdentifiedAt;
+    private LocalDateTime approvedAt;
+    private LocalDateTime serviceEndTime;
+
+    // 🔐 QR security
+    private String qrToken;
+    private String paymentStatus; // PENDING, PAID
+    private String paymentId;     // Razorpay/Stripe ID
+    private LocalDateTime paymentTime;
+	public String getPaymentStatus() {
+		return paymentStatus;
+	}
+
+	public void setPaymentStatus(String paymentStatus) {
+		this.paymentStatus = paymentStatus;
+	}
+
+	public String getPaymentId() {
+		return paymentId;
+	}
+
+	public void setPaymentId(String paymentId) {
+		this.paymentId = paymentId;
+	}
+
+	public LocalDateTime getPaymentTime() {
+		return paymentTime;
+	}
+
+	public void setPaymentTime(LocalDateTime paymentTime) {
+		this.paymentTime = paymentTime;
+	}
 
 	public Long getId() {
 		return id;
@@ -29,6 +79,14 @@ public class ServiceHistory {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getTrackingId() {
+		return trackingId;
+	}
+
+	public void setTrackingId(String trackingId) {
+		this.trackingId = trackingId;
 	}
 
 	public Long getBookingId() {
@@ -47,20 +105,28 @@ public class ServiceHistory {
 		this.userId = userId;
 	}
 
-	public Long getGarageId() {
-		return garageId;
+	public Long getEmployeeId() {
+		return employeeId;
 	}
 
-	public void setGarageId(Long garageId) {
-		this.garageId = garageId;
+	public void setEmployeeId(Long employeeId) {
+		this.employeeId = employeeId;
 	}
 
-	public String getServiceType() {
-		return serviceType;
+	public String getProblemDescription() {
+		return problemDescription;
 	}
 
-	public void setServiceType(String serviceType) {
-		this.serviceType = serviceType;
+	public void setProblemDescription(String problemDescription) {
+		this.problemDescription = problemDescription;
+	}
+
+	public Double getEstimatedCost() {
+		return estimatedCost;
+	}
+
+	public void setEstimatedCost(Double estimatedCost) {
+		this.estimatedCost = estimatedCost;
 	}
 
 	public Double getFinalCost() {
@@ -71,21 +137,99 @@ public class ServiceHistory {
 		this.finalCost = finalCost;
 	}
 
-	public Long getServiceDuration() {
-		return serviceDuration;
+	public String getStatus() {
+		return status;
 	}
 
-	public void setServiceDuration(Long serviceDuration) {
-		this.serviceDuration = serviceDuration;
+	public void setStatus(String status) {
+		this.status = status;
 	}
 
-	public LocalDateTime getCompletionTime() {
-		return completionTime;
+	public boolean isApproved() {
+		return approved;
 	}
 
-	public void setCompletionTime(LocalDateTime completionTime) {
-		this.completionTime = completionTime;
+	public void setApproved(boolean approved) {
+		this.approved = approved;
 	}
 
-    // Getters and Setters
+	public boolean isTowingRequired() {
+		return towingRequired;
+	}
+
+	public void setTowingRequired(boolean towingRequired) {
+		this.towingRequired = towingRequired;
+	}
+
+	public boolean isMultiDayRequired() {
+		return multiDayRequired;
+	}
+
+	public void setMultiDayRequired(boolean multiDayRequired) {
+		this.multiDayRequired = multiDayRequired;
+	}
+
+	public Integer getEstimatedDays() {
+		return estimatedDays;
+	}
+
+	public void setEstimatedDays(Integer estimatedDays) {
+		this.estimatedDays = estimatedDays;
+	}
+
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(LocalDateTime createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public LocalDateTime getReachedAt() {
+		return reachedAt;
+	}
+
+	public void setReachedAt(LocalDateTime reachedAt) {
+		this.reachedAt = reachedAt;
+	}
+
+	public LocalDateTime getServiceStartTime() {
+		return serviceStartTime;
+	}
+
+	public void setServiceStartTime(LocalDateTime serviceStartTime) {
+		this.serviceStartTime = serviceStartTime;
+	}
+
+	public LocalDateTime getIssueIdentifiedAt() {
+		return issueIdentifiedAt;
+	}
+
+	public void setIssueIdentifiedAt(LocalDateTime issueIdentifiedAt) {
+		this.issueIdentifiedAt = issueIdentifiedAt;
+	}
+
+	public LocalDateTime getApprovedAt() {
+		return approvedAt;
+	}
+
+	public void setApprovedAt(LocalDateTime approvedAt) {
+		this.approvedAt = approvedAt;
+	}
+
+	public LocalDateTime getServiceEndTime() {
+		return serviceEndTime;
+	}
+
+	public void setServiceEndTime(LocalDateTime serviceEndTime) {
+		this.serviceEndTime = serviceEndTime;
+	}
+
+	public String getQrToken() {
+		return qrToken;
+	}
+
+	public void setQrToken(String qrToken) {
+		this.qrToken = qrToken;
+	}
 }

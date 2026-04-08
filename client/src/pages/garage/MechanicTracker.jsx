@@ -1,11 +1,15 @@
 import { useEffect, useRef } from "react";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function MechanicTracker({ booking }) {
 
   const clientRef = useRef(null);
   const intervalRef = useRef(null);
+  const reachedRef = useRef(false); // ✅ avoid duplicate calls
+  const navigate = useNavigate();
 
   useEffect(() => {
 
@@ -14,35 +18,30 @@ function MechanicTracker({ booking }) {
       return;
     }
 
-    // 🔥 Start FAR from user (random realistic location)
     let currentLat =
       booking.bookingLocationLat + (Math.random() * 0.1 + 0.05);
 
     let currentLng =
       booking.bookingLocationLng + (Math.random() * 0.1 + 0.05);
 
-    console.log("🚗 Mechanic START:", currentLat, currentLng);
-    console.log("🎯 User TARGET:", booking.bookingLocationLat, booking.bookingLocationLng);
-
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-      reconnectDelay: 5000,
-      debug: (msg) => console.log("STOMP:", msg)
+      reconnectDelay: 5000
     });
 
     clientRef.current = client;
 
     client.onConnect = () => {
 
-      console.log("🟢 Mechanic WebSocket Connected");
+      console.log("🟢 Mechanic tracking started");
 
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = setInterval(async () => {
 
         if (!client.connected) return;
 
-        // 🎯 Smooth movement toward user
-        currentLat += (booking.bookingLocationLat - currentLat) * 0.02;
-        currentLng += (booking.bookingLocationLng - currentLng) * 0.02;
+        // 🚗 Move toward user
+        currentLat += (booking.bookingLocationLat - currentLat) * 0.32;
+        currentLng += (booking.bookingLocationLng - currentLng) * 0.32;
 
         const payload = {
           bookingId: booking.id,
@@ -50,24 +49,43 @@ function MechanicTracker({ booking }) {
           lng: currentLng
         };
 
-        console.log("📤 Sending:", payload);
-
         client.publish({
           destination: "/app/mechanic-location",
           body: JSON.stringify(payload)
         });
 
-        // 🛑 Stop when close enough
+        // 📏 Distance check
         const distance =
           Math.abs(currentLat - booking.bookingLocationLat) +
           Math.abs(currentLng - booking.bookingLocationLng);
 
-        if (distance < 0.0001) {
+        // ✅ ARRIVAL LOGIC
+        if (distance < 0.0001 && !reachedRef.current) {
+
+          reachedRef.current = true;
+
           console.log("✅ Mechanic reached destination");
+
           clearInterval(intervalRef.current);
+
+          try {
+
+            // 1️⃣ Update status → REACHED (generates QR token backend)
+            await axios.put(
+              `http://localhost:8080/bookings/${booking.id}/status?status=REACHED`,
+              {},
+              { withCredentials: true }
+            );
+
+            // 2️⃣ Navigate to scan page (mechanic scans user QR)
+            navigate(`/scan/${booking.id}`);
+
+          } catch (err) {
+            console.error("❌ Failed to update status", err);
+          }
         }
 
-      }, 2000); // smooth updates
+      }, 2000);
 
     };
 
@@ -75,7 +93,7 @@ function MechanicTracker({ booking }) {
 
     return () => {
 
-      console.log("🔴 Mechanic tracker stopped");
+      console.log("🔴 Tracking stopped");
 
       if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -83,7 +101,7 @@ function MechanicTracker({ booking }) {
 
     };
 
-  }, [booking]);
+  }, [booking, navigate]);
 
   return null;
 }

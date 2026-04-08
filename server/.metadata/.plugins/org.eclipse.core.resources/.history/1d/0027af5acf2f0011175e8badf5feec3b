@@ -1,0 +1,192 @@
+package com.wheelconnect.controller;
+
+import com.wheelconnect.entity.ServiceHistory;
+import com.wheelconnect.repositories.ServiceHistoryRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+
+
+import com.wheelconnect.entity.ServiceHistory;
+import com.wheelconnect.repositories.ServiceHistoryRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/service-history")
+public class ServiceHistoryController {
+
+    private final ServiceHistoryRepository repo;
+
+    public ServiceHistoryController(ServiceHistoryRepository repo) {
+        this.repo = repo;
+    }
+
+    // =========================================================
+    // ✅ 1. INIT SERVICE (create when booking accepted)
+    // =========================================================
+    @PostMapping("/init/{bookingId}")
+    public ServiceHistory init(@PathVariable Long bookingId,
+                               @RequestParam Long userId,
+                               @RequestParam Long employeeId) {
+
+        ServiceHistory s = new ServiceHistory();
+
+        s.setBookingId(bookingId);
+        s.setUserId(userId);
+        s.setEmployeeId(employeeId);
+
+        s.setTrackingId(UUID.randomUUID().toString());
+        s.setQrToken(UUID.randomUUID().toString());
+
+        s.setStatus("CREATED");
+        s.setCreatedAt(LocalDateTime.now());
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 2. MECHANIC REACHED
+    // =========================================================
+    @PutMapping("/{bookingId}/reached")
+    public ServiceHistory reached(@PathVariable Long bookingId) {
+
+        ServiceHistory s = getService(bookingId);
+
+        if (!"CREATED".equals(s.getStatus())) {
+            throw new RuntimeException("Invalid state for REACHED");
+        }
+
+        s.setStatus("REACHED");
+        s.setReachedAt(LocalDateTime.now());
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 3. START SERVICE (QR SECURE)
+    // =========================================================
+    @PutMapping("/{bookingId}/start-secure")
+    public ServiceHistory startSecure(
+            @PathVariable Long bookingId,
+            @RequestParam String token) {
+
+        ServiceHistory s = getService(bookingId);
+
+        if (!"REACHED".equals(s.getStatus())) {
+            throw new RuntimeException("Service not ready to start");
+        }
+
+        if (s.getQrToken() == null || !s.getQrToken().equals(token)) {
+            throw new RuntimeException("Invalid QR Token");
+        }
+
+        s.setStatus("IN_PROGRESS");
+        s.setServiceStartTime(LocalDateTime.now());
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 4. IDENTIFY PROBLEM (EMPLOYEE)
+    // =========================================================
+    @PutMapping("/{bookingId}/identify")
+    public ServiceHistory identify(
+            @PathVariable Long bookingId,
+            @RequestBody ServiceHistory req) {
+
+        ServiceHistory s = getService(bookingId);
+
+        if (!"IN_PROGRESS".equals(s.getStatus())) {
+            throw new RuntimeException("Service not started");
+        }
+
+        s.setProblemDescription(req.getProblemDescription());
+        s.setEstimatedCost(req.getEstimatedCost());
+
+        s.setTowingRequired(req.isTowingRequired());
+        s.setMultiDayRequired(req.isMultiDayRequired());
+        s.setEstimatedDays(req.getEstimatedDays());
+
+        // 🔥 CASE HANDLING
+        if (s.isTowingRequired()) {
+            s.setStatus("TOW_REQUIRED");
+        } else if (s.isMultiDayRequired()) {
+            s.setStatus("MULTI_DAY");
+        } else {
+            s.setStatus("PENDING_APPROVAL");
+        }
+
+        s.setIssueIdentifiedAt(LocalDateTime.now());
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 5. USER APPROVAL
+    // =========================================================
+    @PutMapping("/{bookingId}/approve")
+    public ServiceHistory approve(
+            @PathVariable Long bookingId,
+            @RequestParam boolean approved) {
+
+        ServiceHistory s = getService(bookingId);
+
+        if (!"PENDING_APPROVAL".equals(s.getStatus())
+                && !"MULTI_DAY".equals(s.getStatus())
+                && !"TOW_REQUIRED".equals(s.getStatus())) {
+            throw new RuntimeException("Invalid state for approval");
+        }
+
+        if (approved) {
+            s.setApproved(true);
+            s.setStatus("APPROVED");
+            s.setApprovedAt(LocalDateTime.now());
+        } else {
+            s.setApproved(false);
+            s.setStatus("REJECTED");
+        }
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 6. COMPLETE SERVICE
+    // =========================================================
+    @PutMapping("/{bookingId}/complete")
+    public ServiceHistory complete(
+            @PathVariable Long bookingId,
+            @RequestParam Double finalCost) {
+
+        ServiceHistory s = getService(bookingId);
+
+        if (!"APPROVED".equals(s.getStatus())) {
+            throw new RuntimeException("Service not approved");
+        }
+
+        s.setFinalCost(finalCost);
+        s.setStatus("COMPLETED");
+        s.setServiceEndTime(LocalDateTime.now());
+
+        return repo.save(s);
+    }
+
+    // =========================================================
+    // ✅ 7. GET SERVICE BY BOOKING
+    // =========================================================
+    @GetMapping("/booking/{bookingId}")
+    public ServiceHistory getByBooking(@PathVariable Long bookingId) {
+        return getService(bookingId);
+    }
+
+    // =========================================================
+    // ✅ 8. INTERNAL HELPER (SAFE FETCH)
+    // =========================================================
+    private ServiceHistory getService(Long bookingId) {
+        return repo.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Service not found"));
+    }
+}

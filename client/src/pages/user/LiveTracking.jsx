@@ -8,6 +8,8 @@ import {
   Popup,
   useMap
 } from "react-leaflet";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine";
@@ -20,76 +22,71 @@ if (typeof global === "undefined") {
 window.L = L;
 
 /* ================= ROUTING ================= */
-function Routing({ mechanicLocation, userLocation }) {
+function Routing({ mechanicLocation, userLocation, onReached }) {
 
   const map = useMap();
   const routingRef = useRef(null);
+  const reachedRef = useRef(false); // ✅ prevent multiple triggers
 
-useEffect(() => {
+  useEffect(() => {
 
-  if (!mechanicLocation || !userLocation) return;
+    if (!mechanicLocation || !userLocation) return;
 
-  // ✅ Validate coords
-  if (
-    isNaN(mechanicLocation.lat) ||
-    isNaN(mechanicLocation.lng) ||
-    isNaN(userLocation.lat) ||
-    isNaN(userLocation.lng)
-  ) {
-    console.log("❌ Invalid coordinates");
-    return;
-  }
+    // ✅ Validate coords
+    if (
+      isNaN(mechanicLocation.lat) ||
+      isNaN(mechanicLocation.lng) ||
+      isNaN(userLocation.lat) ||
+      isNaN(userLocation.lng)
+    ) return;
 
-  // ✅ Stop when reached
-  const distance =
-    Math.abs(mechanicLocation.lat - userLocation.lat) +
-    Math.abs(mechanicLocation.lng - userLocation.lng);
+    // 📏 Distance check
+    const distance =
+      Math.abs(mechanicLocation.lat - userLocation.lat) +
+      Math.abs(mechanicLocation.lng - userLocation.lng);
 
-  if (distance < 0.0005) {
-    console.log("✅ Reached destination → stop routing");
-    return;
-  }
+    // ✅ ARRIVAL LOGIC
+    if (distance < 0.0001 && !reachedRef.current) {
+      reachedRef.current = true;
+      console.log("✅ Mechanic reached destination");
 
-  if (!routingRef.current) {
+      if (onReached) onReached();
+      return;
+    }
 
-    routingRef.current = L.Routing.control({
-      waypoints: [
+    if (!routingRef.current) {
+
+      routingRef.current = L.Routing.control({
+        waypoints: [
+          L.latLng(mechanicLocation.lat, mechanicLocation.lng),
+          L.latLng(userLocation.lat, userLocation.lng)
+        ],
+        router: L.Routing.osrmv1({
+          serviceUrl: "https://router.project-osrm.org/route/v1"
+        }),
+        addWaypoints: false,
+        draggableWaypoints: false,
+        routeWhileDragging: false,
+        show: false,
+        createMarker: () => null
+      }).addTo(map);
+
+      routingRef.current.on("routesfound", (e) => {
+        const bounds = e.routes[0].bounds;
+        if (bounds?.isValid()) {
+          map.fitBounds(bounds);
+        }
+      });
+
+    } else {
+
+      routingRef.current.setWaypoints([
         L.latLng(mechanicLocation.lat, mechanicLocation.lng),
         L.latLng(userLocation.lat, userLocation.lng)
-      ],
-      router: L.Routing.osrmv1({
-        serviceUrl: "https://router.project-osrm.org/route/v1"
-      }),
-      addWaypoints: false,
-      draggableWaypoints: false,
-      routeWhileDragging: false,
-      show: false,
-      createMarker: () => null
-    }).addTo(map);
+      ]);
+    }
 
-    routingRef.current.on("routesfound", (e) => {
-      console.log("✅ Route found");
-
-      const bounds = e.routes[0].bounds;
-
-      if (bounds && bounds.isValid && bounds.isValid()) {
-        map.fitBounds(bounds);
-      }
-    });
-
-    routingRef.current.on("routingerror", (err) => {
-      console.error("❌ Routing error:", err);
-    });
-
-  } else {
-
-    routingRef.current.setWaypoints([
-      L.latLng(mechanicLocation.lat, mechanicLocation.lng),
-      L.latLng(userLocation.lat, userLocation.lng)
-    ]);
-  }
-
-}, [mechanicLocation, userLocation]);
+  }, [mechanicLocation, userLocation]);
 
   return null;
 }
@@ -98,6 +95,7 @@ useEffect(() => {
 function LiveTracking({ booking }) {
 
   const [mechanicLocation, setMechanicLocation] = useState(null);
+  const navigate = useNavigate();
 
   const userLocation = booking?.bookingLocationLat
     ? {
@@ -106,33 +104,39 @@ function LiveTracking({ booking }) {
       }
     : null;
 
+  // ✅ Handle arrival
+  const handleReached = async () => {
+    try {
+
+      await axios.put(
+        `http://localhost:8080/bookings/${booking.id}/status?status=REACHED`,
+        {},
+        { withCredentials: true }
+      );
+
+      // 👉 redirect to QR page
+      navigate(`/start-service/${booking.id}`);
+
+    } catch (err) {
+      console.error("❌ Failed to update status", err);
+    }
+  };
+
   useEffect(() => {
 
-    if (!booking?.id) {
-      console.log("❌ No booking ID");
-      return;
-    }
-
-    console.log("🔌 Connecting WebSocket...");
+    if (!booking?.id) return;
 
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-      reconnectDelay: 5000,
-      debug: (str) => console.log("STOMP:", str)
+      reconnectDelay: 5000
     });
 
     client.onConnect = () => {
 
-      console.log("✅ WebSocket Connected");
-
       client.subscribe(`/topic/booking/${booking.id}`, (message) => {
-
-        console.log("📩 Message received:", message.body);
 
         try {
           const data = JSON.parse(message.body);
-
-          console.log("📍 Parsed location:", data);
 
           setMechanicLocation({
             lat: data.lat,
@@ -149,10 +153,7 @@ function LiveTracking({ booking }) {
 
     client.activate();
 
-    return () => {
-      console.log("🔌 Disconnecting...");
-      client.deactivate();
-    };
+    return () => client.deactivate();
 
   }, [booking]);
 
@@ -166,27 +167,24 @@ function LiveTracking({ booking }) {
         style={{ height: "100%" }}
       >
 
-        {/* ✅ FIXED TILE (avoid connection error) */}
         <TileLayer url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png" />
 
-        {/* Mechanic */}
         {mechanicLocation && (
           <Marker position={[mechanicLocation.lat, mechanicLocation.lng]}>
             <Popup>🚗 Mechanic</Popup>
           </Marker>
         )}
 
-        {/* User */}
         {userLocation && (
           <Marker position={[userLocation.lat, userLocation.lng]}>
             <Popup>📍 You</Popup>
           </Marker>
         )}
 
-        {/* Route */}
         <Routing
           mechanicLocation={mechanicLocation}
           userLocation={userLocation}
+          onReached={handleReached}
         />
 
       </MapContainer>

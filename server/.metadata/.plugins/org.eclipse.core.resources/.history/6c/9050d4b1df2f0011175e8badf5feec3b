@@ -1,0 +1,144 @@
+package com.wheelconnect.controller;
+
+import com.wheelconnect.entity.ServiceHistory;
+import com.wheelconnect.repositories.ServiceHistoryRepository;
+import org.springframework.web.bind.annotation.*;
+
+
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/service-history")
+public class ServiceHistoryController {
+
+    private final ServiceHistoryRepository repository;
+
+    public ServiceHistoryController(ServiceHistoryRepository repository) {
+        this.repository = repository;
+    }
+
+    // ✅ START SERVICE (QR SCAN)
+    @PutMapping("/{bookingId}/start-secure")
+    public ServiceHistory startServiceSecure(
+            @PathVariable Long bookingId,
+            @RequestParam String token) {
+
+        ServiceHistory history = repository
+                .findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Service not found"));
+//
+//        if (!history.getQrToken().equals(token)) {
+//            throw new RuntimeException("Invalid QR token");
+//        }
+
+        // 🚨 prevent duplicate scan
+        if ("IN_PROGRESS".equals(history.getStatus())) {
+            return history;
+        }
+
+        history.setStatus("IN_PROGRESS");
+        history.setServiceStartTime(LocalDateTime.now());
+
+        return repository.save(history);
+    }
+
+    // ✅ IDENTIFY PROBLEM
+    @PutMapping("/{id}/identify")
+    public ServiceHistory identify(
+            @PathVariable Long id,
+            @RequestBody ServiceHistory req) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        if (!"IN_PROGRESS".equals(history.getStatus())) {
+            throw new RuntimeException("Service not started");
+        }
+
+        history.setProblemDescription(req.getProblemDescription());
+        history.setEstimatedCost(req.getEstimatedCost());
+        history.setIssueIdentifiedAt(LocalDateTime.now());
+        history.setStatus("PENDING_APPROVAL");
+
+        return repository.save(history);
+    }
+
+    // ✅ USER APPROVES
+    @PutMapping("/{id}/approve")
+    public ServiceHistory approve(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        if (!"PENDING_APPROVAL".equals(history.getStatus())) {
+            throw new RuntimeException("Invalid state");
+        }
+
+        history.setApproved(true);
+        history.setApprovedAt(LocalDateTime.now());
+        history.setStatus("APPROVED");
+
+        return repository.save(history);
+    }
+
+    // ❌ USER REJECTS
+    @PutMapping("/{id}/reject")
+    public ServiceHistory reject(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        history.setApproved(false);
+        history.setStatus("REJECTED");
+
+        return repository.save(history);
+    }
+
+    // 🚗 TOW CASE
+    @PutMapping("/{id}/tow")
+    public ServiceHistory tow(@PathVariable Long id) {
+
+        ServiceHistory history = repository.findById(id).orElseThrow();
+
+        history.setTowingRequired(true);
+        history.setStatus("TOW_REQUIRED");
+
+        return repository.save(history);
+    }
+
+    // 📅 MULTI DAY CASE
+    @PutMapping("/{id}/multi-day")
+    public ServiceHistory multiDay(
+            @PathVariable Long id,
+            @RequestParam int days) {
+
+        ServiceHistory history = repository.findById(id).orElseThrow();
+
+        history.setMultiDayRequired(true);
+        history.setEstimatedDays(days);
+        history.setStatus("MULTI_DAY");
+
+        return repository.save(history);
+    }
+
+    // ✅ COMPLETE SERVICE
+    @PutMapping("/{id}/complete")
+    public ServiceHistory complete(
+            @PathVariable Long id,
+            @RequestParam Double finalCost) {
+
+        ServiceHistory history = repository.findById(id).orElseThrow();
+
+        if (!"APPROVED".equals(history.getStatus())) {
+            throw new RuntimeException("Not approved yet");
+        }
+
+        history.setFinalCost(finalCost);
+        history.setServiceEndTime(LocalDateTime.now());
+        history.setStatus("COMPLETED");
+
+        return repository.save(history);
+    }
+}

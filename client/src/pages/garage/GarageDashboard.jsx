@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import CreateGarage from "./CreateGarage";
 import MechanicTracker from "./MechanicTracker";
+import LiveTracking from "../user/LiveTracking";
 
 function GarageDashboard() {
 
@@ -291,7 +292,30 @@ function GarageDashboard() {
       </div>
 
       {selectedBooking && (
+        <>
         <MechanicTracker booking={selectedBooking} />
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-70 z-50">
+
+    <div className="bg-white p-4 flex justify-between items-center">
+      <h2 className="text-lg font-bold">
+        Tracking Booking #{selectedBooking.id}
+      </h2>
+
+      <button
+        onClick={() => setSelectedBooking(null)}
+        className="bg-red-500 text-white px-4 py-1 rounded"
+      >
+        Close
+      </button>
+    </div>
+
+    <div className="p-4">
+      <LiveTracking booking={selectedBooking} />
+    </div>
+
+  </div>
+        </>
+        
       )}
 
     </div>

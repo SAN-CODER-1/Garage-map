@@ -1,47 +1,47 @@
 package com.wheelconnect.Security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET =
-            "IVe5KlZDRdt5nRWfhQi83WnF7ZJKGXHPFvwaLjBUClE";
+    private final Key key;
 
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+    // 🔥 SECRET from properties (NOT hardcoded)
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // Generate JWT
-    public String generateToken(String email) {
-
+    public String generateToken(String email, String role) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()
-                        + 1000 * 60 * 60 * 24)) // 24 hours
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+                .signWith(key)
                 .compact();
     }
 
-    // Extract username
     public String extractUsername(String token) {
+        return getClaims(token).getSubject();
+    }
+    
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
+    }
 
-        Claims claims = Jwts
-                .parserBuilder()
-                .setSigningKey(getSigningKey())
+    private Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-
-        return claims.getSubject();
     }
 }

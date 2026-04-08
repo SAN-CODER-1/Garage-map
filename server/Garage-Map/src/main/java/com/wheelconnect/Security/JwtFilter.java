@@ -2,7 +2,6 @@ package com.wheelconnect.Security;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -28,15 +27,18 @@ public class JwtFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
-        String username = null;
+        // 🔥 CRITICAL FIX → skip login/register
+        String path = req.getRequestURI();
+        if (path.startsWith("/auth/")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String token = null;
 
         Cookie[] cookies = req.getCookies();
-
         if (cookies != null) {
-
             for (Cookie cookie : cookies) {
-
                 if ("wheelconnect_token".equals(cookie.getName())) {
                     token = cookie.getValue();
                 }
@@ -44,10 +46,8 @@ public class JwtFilter implements Filter {
         }
 
         if (token != null) {
-
             try {
-
-                username = jwtUtil.extractUsername(token);
+                String username = jwtUtil.extractUsername(token);
 
                 if (username != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -63,7 +63,6 @@ public class JwtFilter implements Filter {
                 }
 
             } catch (Exception e) {
-
                 res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
