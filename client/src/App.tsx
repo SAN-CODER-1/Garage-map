@@ -4,26 +4,26 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import Home from "./pages/Home";
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
-import GarageDashboard from "./pages/garage/GarageDashboard";
-import CreateGarage from "./pages/garage/CreateGarage";
-import ManageEmployees from "./pages/garage/ManageEmployees";
-import CompletePage from "./pages/servicecompleted";
-import Booking from "./pages/user/Booking";
-import ApprovalPage from "./pages/user/aprovepage";
-import StartServicePage from "./pages/user/StartServicePage";
-import ServicePage from "./pages/user/ServicePage";
-import PaymentPage from "./pages/user/PaymentPage";
-import MechanicWorkPage from "./pages/garage/MechanicWorkPage";
-import MyBookings from "./pages/garage/MyBookings";
-import ScanPage from "./pages/garage/ScanPage";
+import Home from "@/features/home/Home";
+import Login from "@/features/auth/Login";
+import Register from "@/features/auth/Register";
+import Dashboard from "@/features/dashboard/Dashboard";
+import NotFound from "@/features/not-found/NotFound";
+import GarageDashboard from "@/features/garage/GarageDashboard";
+import CreateGarage from "@/features/garage/CreateGarage";
+import ManageEmployees from "@/features/garage/ManageEmployees";
+import ServiceCompleted from "@/features/booking/ServiceCompleted";
+import Booking from "@/features/booking/Booking";
+import ApprovalPage from "@/features/booking/ApprovalPage";
+import StartServicePage from "@/features/booking/StartServicePage";
+import ServicePage from "@/features/booking/ServicePage";
+import PaymentPage from "@/features/booking/PaymentPage";
+import MechanicWorkPage from "@/features/garage/MechanicWorkPage";
+import MyBookings from "@/features/garage/MyBookings";
+import ScanPage from "@/features/garage/ScanPage";
 import "leaflet/dist/leaflet.css";
-// import ProtectedRoute from "./components/security/ProtectedRoute.";
-import Review from "./pages/user/Review";
+// import ProtectedRoute from "@/features/auth/ProtectedRoute";
+import Review from "@/features/booking/Review";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = !!localStorage.getItem("authToken");
@@ -73,7 +73,7 @@ const App = () => (
             <Route path="/approval/:bookingId" element={<ApprovalPage />} />
             <Route path="/payment/:bookingId" element={<PaymentPage />} />
             <Route path="/review/:bookingId" element={<Review />} />
-            <Route path="/complete/:bookingId" element={<CompletePage />} />
+            <Route path="/complete/:bookingId" element={<ServiceCompleted />} />
             <Route path="/start-service/:bookingId" element={<StartServicePage />} />
 
             {/* GARAGE OWNER */}

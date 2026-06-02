@@ -2,12 +2,11 @@ package com.wheelconnect.controller;
 
 import com.wheelconnect.entity.ServiceHistory;
 import com.wheelconnect.repositories.ServiceHistoryRepository;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
-
 import java.time.LocalDateTime;
-
 
 @RestController
 @RequestMapping("/service-history")
@@ -19,27 +18,25 @@ public class ServiceHistoryController {
         this.repository = repository;
     }
 
-    // ✅ START SERVICE (QR SCAN)
-    // ✅ START SERVICE (QR SCAN)
+    // ✅ START SERVICE (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
     @PutMapping("/{bookingId}/start-secure")
     public ServiceHistory startServiceSecure(
             @PathVariable Long bookingId,
             @RequestParam String token) {
 
-        // ✅ Dynamically create the history if missing
         ServiceHistory history = repository.findByBookingId(bookingId)
                 .orElseGet(() -> {
                     ServiceHistory newHistory = new ServiceHistory();
                     newHistory.setBookingId(bookingId);
                     newHistory.setQrToken(token);
-                    
-                    // 👇 FIX: Assign a random UUID to prevent Null Tracking ID SQL Error
-                    newHistory.setTrackingId(java.util.UUID.randomUUID().toString()); 
-                    
+
+                    newHistory.setTrackingId(
+                            java.util.UUID.randomUUID().toString());
+
                     return newHistory;
                 });
 
-        // 🚨 prevent duplicate scan
         if ("IN_PROGRESS".equals(history.getStatus())) {
             return history;
         }
@@ -47,17 +44,24 @@ public class ServiceHistoryController {
         history.setStatus("IN_PROGRESS");
         history.setServiceStartTime(LocalDateTime.now());
 
-        // Saves to MySQL successfully!
         return repository.save(history);
     }
 
+    // ✅ VIEW HISTORY
+    @PreAuthorize("hasAnyRole('CUSTOMER','GARAGE','ADMIN')")
     @GetMapping("/booking/{bookingId}")
-    public ServiceHistory getByBookingId(@PathVariable Long bookingId) {
+    public ServiceHistory getByBookingId(
+            @PathVariable Long bookingId) {
 
         return repository.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Service history not found for booking: " + bookingId));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Service history not found for booking: "
+                                        + bookingId));
     }
-    // ✅ IDENTIFY PROBLEM
+
+    // ✅ IDENTIFY PROBLEM (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
     @PutMapping("/booking/{bookingId}/identify")
     public ServiceHistory identifyByBooking(
             @PathVariable Long bookingId,
@@ -65,27 +69,36 @@ public class ServiceHistoryController {
 
         ServiceHistory history = repository
                 .findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Service not found"));
 
         if (!"IN_PROGRESS".equals(history.getStatus())) {
             throw new RuntimeException("Service not started");
         }
 
-        history.setProblemDescription(req.getProblemDescription());
-        history.setEstimatedCost(req.getEstimatedCost());
-        history.setIssueIdentifiedAt(LocalDateTime.now());
+        history.setProblemDescription(
+                req.getProblemDescription());
+
+        history.setEstimatedCost(
+                req.getEstimatedCost());
+
+        history.setIssueIdentifiedAt(
+                LocalDateTime.now());
+
         history.setStatus("PENDING_APPROVAL");
 
         return repository.save(history);
     }
 
+    // ✅ CUSTOMER APPROVES
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
     @PutMapping("/{id}/approve")
     public ServiceHistory approve(@PathVariable Long id) {
 
         ServiceHistory history = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
 
-        // 🚨 THIS IS MOST LIKELY YOUR 500 ERROR 🚨
         if (!"PENDING_APPROVAL".equals(history.getStatus())) {
             throw new RuntimeException("Invalid state");
         }
@@ -97,13 +110,14 @@ public class ServiceHistoryController {
         return repository.save(history);
     }
 
-
-    // ❌ USER REJECTS
+    // ❌ CUSTOMER REJECTS
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
     @PutMapping("/{id}/reject")
     public ServiceHistory reject(@PathVariable Long id) {
 
         ServiceHistory history = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
 
         history.setApproved(false);
         history.setStatus("REJECTED");
@@ -111,11 +125,13 @@ public class ServiceHistoryController {
         return repository.save(history);
     }
 
-    // 🚗 TOW CASE
+    // 🚗 TOW CASE (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
     @PutMapping("/{id}/tow")
     public ServiceHistory tow(@PathVariable Long id) {
 
-        ServiceHistory history = repository.findById(id).orElseThrow();
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow();
 
         history.setTowingRequired(true);
         history.setStatus("TOW_REQUIRED");
@@ -123,13 +139,15 @@ public class ServiceHistoryController {
         return repository.save(history);
     }
 
-    // 📅 MULTI DAY CASE
+    // 📅 MULTI DAY CASE (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
     @PutMapping("/{id}/multi-day")
     public ServiceHistory multiDay(
             @PathVariable Long id,
             @RequestParam int days) {
 
-        ServiceHistory history = repository.findById(id).orElseThrow();
+        ServiceHistory history = repository.findById(id)
+                .orElseThrow();
 
         history.setMultiDayRequired(true);
         history.setEstimatedDays(days);
@@ -137,13 +155,17 @@ public class ServiceHistoryController {
 
         return repository.save(history);
     }
+
+    // 💳 CUSTOMER PAYMENT
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
     @PutMapping("/{id}/pay")
     public ServiceHistory pay(
             @PathVariable Long id,
             @RequestParam String paymentId) {
 
         ServiceHistory history = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
 
         if (!"PAYMENT_PENDING".equals(history.getStatus())) {
             throw new RuntimeException("Payment not required");
@@ -152,49 +174,68 @@ public class ServiceHistoryController {
         history.setPaymentId(paymentId);
         history.setPaymentStatus("PAID");
         history.setPaymentTime(LocalDateTime.now());
-        history.setStatus("COMPLETED"); // final state
+
+        history.setStatus("COMPLETED");
 
         return repository.save(history);
     }
-    // ✅ COMPLETE SERVICE
+
+    // ✅ COMPLETE SERVICE (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
     @PutMapping("/booking/{bookingId}/complete")
     public ServiceHistory completeByBooking(
             @PathVariable Long bookingId,
             @RequestBody ServiceHistory req) {
 
-        ServiceHistory history = repository.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+        ServiceHistory history = repository
+                .findByBookingId(bookingId)
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
 
         if (!"APPROVED".equals(history.getStatus())) {
             throw new RuntimeException("Not approved yet");
         }
 
         history.setFinalCost(req.getFinalCost());
-        history.setServiceEndTime(LocalDateTime.now());
+
+        history.setServiceEndTime(
+                LocalDateTime.now());
+
         history.setStatus("PAYMENT_PENDING");
 
         return repository.save(history);
     }
-    @PutMapping("/booking/{bookingId}/start-work")
-    public ServiceHistory startWork(@PathVariable Long bookingId) {
 
-        ServiceHistory history = repository.findByBookingId(bookingId)
+    // 🔧 START WORK (GARAGE ONLY)
+    @PreAuthorize("hasAnyRole('GARAGE','ADMIN')")
+    @PutMapping("/booking/{bookingId}/start-work")
+    public ServiceHistory startWork(
+            @PathVariable Long bookingId) {
+
+        ServiceHistory history = repository
+                .findByBookingId(bookingId)
                 .orElseGet(() -> {
-                    ServiceHistory newHistory = new ServiceHistory();
+
+                    ServiceHistory newHistory =
+                            new ServiceHistory();
+
                     newHistory.setBookingId(bookingId);
-                    newHistory.setTrackingId(java.util.UUID.randomUUID().toString());
+
+                    newHistory.setTrackingId(
+                            java.util.UUID.randomUUID().toString());
+
                     return newHistory;
                 });
 
-        // prevent duplicate start
         if ("IN_PROGRESS".equals(history.getStatus())) {
             return history;
         }
 
         history.setStatus("IN_PROGRESS");
-        history.setServiceStartTime(LocalDateTime.now());
+
+        history.setServiceStartTime(
+                LocalDateTime.now());
 
         return repository.save(history);
     }
-    
 }
