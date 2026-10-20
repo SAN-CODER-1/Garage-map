@@ -38,6 +38,7 @@ function ApprovalPage() {
     setIsApproving(true);
 
     try {
+      console.log(service.id);
       await axios.put(
         `http://localhost:8080/service-history/${service.id}/approve`,
         {},

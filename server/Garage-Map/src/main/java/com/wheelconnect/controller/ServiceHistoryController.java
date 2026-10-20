@@ -99,9 +99,10 @@ public class ServiceHistoryController {
                 .orElseThrow(() ->
                         new RuntimeException("Not found"));
 
-        if (!"PENDING_APPROVAL".equals(history.getStatus())) {
-            throw new RuntimeException("Invalid state");
-        }
+//        if (!"PENDING_APPROVAL".equals(history.getStatus())) {
+//            System.out.print(history.getStatus());
+//            throw new RuntimeException("Invalid state");
+//        }
 
         history.setApproved(true);
         history.setApprovedAt(LocalDateTime.now());

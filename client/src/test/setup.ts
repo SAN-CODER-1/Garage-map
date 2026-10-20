@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom";
+import { server } from './mocks/server';
+import { beforeAll, afterEach, afterAll } from 'vitest';
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -13,3 +15,7 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());

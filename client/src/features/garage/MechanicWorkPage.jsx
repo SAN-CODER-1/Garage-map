@@ -276,7 +276,7 @@ function MechanicWorkPage() {
                   </div>
                   <button
                     onClick={completeWork}
-                    disabled={service?.status !== "APPROVED"}
+                    // disabled={service?.status !== "APPROVED"}
                     className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold py-3.5 rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 disabled:opacity-50"
                   >
                     <CheckCircle className="w-5 h-5" /> Mark Job Complete
